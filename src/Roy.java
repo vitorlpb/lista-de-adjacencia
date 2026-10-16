@@ -21,8 +21,8 @@ public class Roy {
         for (int i = 0; i < n; i++) {
             alcanca[i][i] = true;
 
-            for (Aresta aresta : grafo.getArestasDe(vertices.get(i))) {
-                int j = indice.get(aresta.getDestino());
+            for (Adjacente adjacente : grafo.getAdjacentes(vertices.get(i))) {
+                int j = indice.get(adjacente.getVertice());
                 alcanca[i][j] = true;
             }
         }

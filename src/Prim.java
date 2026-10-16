@@ -22,17 +22,18 @@ public class Prim {
 
             Aresta menorAresta = null;
 
-            for (Aresta aresta : grafo.getArestas()) {
+            // percorre a lista de adjacência dos vértices já na árvore
+            for (Vertice vertice : naArvore) {
 
-                boolean dentroOrigem = naArvore.contains(aresta.getOrigem());
-                boolean dentroDestino = naArvore.contains(aresta.getDestino());
+                for (Adjacente adjacente : grafo.getAdjacentes(vertice)) {
 
-                if (dentroOrigem == dentroDestino) {
-                    continue;
-                }
+                    if (naArvore.contains(adjacente.getVertice())) {
+                        continue;
+                    }
 
-                if (menorAresta == null || aresta.getPeso() < menorAresta.getPeso()) {
-                    menorAresta = aresta;
+                    if (menorAresta == null || adjacente.getPeso() < menorAresta.getPeso()) {
+                        menorAresta = new Aresta(vertice, adjacente.getVertice(), adjacente.getPeso());
+                    }
                 }
             }
 
@@ -40,11 +41,7 @@ public class Prim {
                 break;
             }
 
-            Vertice novoVertice = naArvore.contains(menorAresta.getOrigem())
-                    ? menorAresta.getDestino()
-                    : menorAresta.getOrigem();
-
-            naArvore.add(novoVertice);
+            naArvore.add(menorAresta.getDestino());
             arestasAGM.add(menorAresta);
             custoTotal += menorAresta.getPeso();
         }

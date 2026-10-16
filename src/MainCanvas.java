@@ -2,9 +2,8 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -20,7 +19,7 @@ public class MainCanvas extends JPanel {
 
     private Vertice origemAresta;
 
-    private Set<Integer> idsDestacados = new HashSet<>();
+    private List<Aresta> destacadas = new ArrayList<>();
 
     public MainCanvas(Grafo grafo) {
         this.grafo = grafo;
@@ -36,7 +35,7 @@ public class MainCanvas extends JPanel {
     public void setGrafo(Grafo grafo) {
         this.grafo = grafo;
         origemAresta = null;
-        idsDestacados.clear();
+        destacadas.clear();
         repaint();
     }
 
@@ -152,18 +151,24 @@ public class MainCanvas extends JPanel {
 
     private void destacar(List<Aresta> arestas) {
 
-        idsDestacados.clear();
-
-        for (Aresta aresta : arestas) {
-            idsDestacados.add(aresta.getId());
-        }
+        destacadas = new ArrayList<>(arestas);
 
         repaint();
     }
 
     private void limparDestaque() {
-        idsDestacados.clear();
+        destacadas.clear();
         repaint();
+    }
+
+    private boolean estaDestacada(Aresta aresta) {
+        for (Aresta destacada : destacadas) {
+            if (destacada.liga(aresta.getOrigem(), aresta.getDestino(), grafo.isDirigido())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private Vertice escolherVertice(String mensagem) {
@@ -277,7 +282,11 @@ public class MainCanvas extends JPanel {
 
         Vertice destino = vertice;
 
-        grafo.adicionarAresta(origemAresta, destino, peso);
+        try {
+            grafo.adicionarAresta(origemAresta, destino, peso);
+        } catch (IllegalArgumentException ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage());
+        }
 
         origemAresta = null;
 
@@ -320,7 +329,7 @@ public class MainCanvas extends JPanel {
             return;
         }
 
-        grafo.removerAresta(aresta);
+        grafo.removerAresta(aresta.getOrigem(), aresta.getDestino());
 
         repaint();
     }
@@ -380,7 +389,7 @@ public class MainCanvas extends JPanel {
     private void desenharArestas(Graphics g) {
         for (Aresta aresta : grafo.getArestas()) {
 
-            g.setColor(idsDestacados.contains(aresta.getId())
+            g.setColor(estaDestacada(aresta)
                     ? Color.RED
                     : Color.BLACK);
 

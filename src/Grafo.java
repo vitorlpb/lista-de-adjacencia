@@ -1,16 +1,18 @@
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class Grafo {
 
     private final boolean dirigido;
 
     private final Map<String, Vertice> vertices;
-    private final Map<Vertice, List<Aresta>> adjacencias;
+    private final Map<Vertice, List<Adjacente>> adjacencias;
 
-    public Boolean validaVertice(Vertice vertice, boolean remove) { 
+    public Boolean validaVertice(Vertice vertice, boolean remove) {
         // ação false = adiciona | true = remove
         boolean rotulo = vertices.containsKey(vertice.getRotulo());
 
@@ -40,19 +42,39 @@ public class Grafo {
 
     public void removerVertices(Vertice vertice) {
         validaVertice(vertice, true);
-        
+
         vertices.remove(vertice.getRotulo());
         adjacencias.remove(vertice);
 
-        for (List<Aresta> lista : adjacencias.values()) {
-            lista.removeIf(aresta -> aresta.getDestino().equals(vertice));
+        for (List<Adjacente> lista : adjacencias.values()) {
+            lista.removeIf(adjacente -> adjacente.getVertice() == vertice);
         }
 
     }
 
-    public void removerAresta(Aresta aresta) {
-        List<Aresta> listaOrigem = adjacencias.get(aresta.getOrigem());
-        boolean removeu = listaOrigem.remove(aresta);
+    public void adicionarAresta(Vertice origem, Vertice destino, double peso) {
+        validaVertice(origem, true);
+        validaVertice(destino, true);
+
+        if (possuiAresta(origem, destino)) {
+            throw new IllegalArgumentException(
+                    "Já existe uma aresta entre " + origem.getRotulo()
+                            + " e " + destino.getRotulo() + ".");
+        }
+
+        adjacencias.get(origem).add(new Adjacente(destino, peso));
+
+        if (!dirigido && origem != destino) {
+            adjacencias.get(destino).add(new Adjacente(origem, peso));
+        }
+    }
+
+    public void removerAresta(Vertice origem, Vertice destino) {
+        validaVertice(origem, true);
+        validaVertice(destino, true);
+
+        boolean removeu = adjacencias.get(origem)
+                .removeIf(adjacente -> adjacente.getVertice() == destino);
 
         if (!removeu) {
             throw new IllegalArgumentException(
@@ -60,22 +82,20 @@ public class Grafo {
         }
 
         if (!dirigido) {
-            List<Aresta> listaDestino = adjacencias.get(aresta.getDestino());
-            listaDestino.removeIf(a -> a.getId() == aresta.getId());
+            adjacencias.get(destino)
+                    .removeIf(adjacente -> adjacente.getVertice() == origem);
         }
     }
 
-    public void adicionarAresta(Vertice origem, Vertice destino, double peso) {
-        Aresta aresta = new Aresta(origem, destino, peso);
-
-        adjacencias.get(origem).add(aresta);
-
-        if (!dirigido) {
-            adjacencias.get(destino).add(aresta.inverter());
+    public boolean possuiAresta(Vertice origem, Vertice destino) {
+        for (Adjacente adjacente : adjacencias.get(origem)) {
+            if (adjacente.getVertice() == destino) {
+                return true;
+            }
         }
-    }
 
-    
+        return false;
+    }
 
     public List<Vertice> getVertices() {
         return new ArrayList<>(vertices.values());
@@ -89,15 +109,30 @@ public class Grafo {
         return vertices.containsKey(rotulo);
     }
 
-    public List<Aresta> getArestasDe(Vertice vertice) {
+    public List<Adjacente> getAdjacentes(Vertice vertice) {
         return new ArrayList<>(adjacencias.get(vertice));
     }
 
+    // Monta as arestas a partir da lista de adjacência.
+    // Em grafo não dirigido, cada aresta aparece uma única vez.
     public List<Aresta> getArestas() {
         List<Aresta> arestas = new ArrayList<>();
+        Set<Vertice> processados = new HashSet<>();
 
-        for (List<Aresta> lista : adjacencias.values()) {
-            arestas.addAll(lista);
+        for (Map.Entry<Vertice, List<Adjacente>> entrada : adjacencias.entrySet()) {
+
+            Vertice origem = entrada.getKey();
+
+            for (Adjacente adjacente : entrada.getValue()) {
+
+                if (!dirigido && processados.contains(adjacente.getVertice())) {
+                    continue;
+                }
+
+                arestas.add(new Aresta(origem, adjacente.getVertice(), adjacente.getPeso()));
+            }
+
+            processados.add(origem);
         }
 
         return arestas;
