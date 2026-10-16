@@ -3,7 +3,9 @@ import java.awt.Graphics;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -21,6 +23,15 @@ public class MainCanvas extends JPanel {
 
     private List<Aresta> destacadas = new ArrayList<>();
 
+    private Map<Vertice, Color> coresVertices = new HashMap<>();
+
+    private static final Color[] PALETA = {
+            new Color(230, 25, 75), new Color(60, 180, 75), new Color(0, 130, 200),
+            new Color(255, 225, 25), new Color(245, 130, 48), new Color(145, 30, 180),
+            new Color(70, 240, 240), new Color(240, 50, 230), new Color(170, 110, 40),
+            new Color(128, 128, 128)
+    };
+
     public MainCanvas(Grafo grafo) {
         this.grafo = grafo;
 
@@ -36,6 +47,7 @@ public class MainCanvas extends JPanel {
         this.grafo = grafo;
         origemAresta = null;
         destacadas.clear();
+        coresVertices.clear();
         repaint();
     }
 
@@ -122,6 +134,58 @@ public class MainCanvas extends JPanel {
         JOptionPane.showMessageDialog(this, "Caminho encontrado: " + texto);
     }
 
+    public void executarAEstrela() {
+
+        desativarModos();
+        limparDestaque();
+
+        Vertice origem = escolherVertice("Vértice de origem:");
+
+        if (origem == null) {
+            return;
+        }
+
+        Vertice destino = escolherVertice("Vértice de destino:");
+
+        if (destino == null) {
+            return;
+        }
+
+        ResultadoAEstrela resultado = new AEstrela().buscar(grafo, origem, destino);
+
+        destacar(resultado.getCaminho());
+
+        StringBuilder texto = new StringBuilder();
+
+        if (resultado.isEncontrado()) {
+
+            texto.append("Caminho mínimo: ").append(origem.getRotulo());
+
+            for (Aresta aresta : resultado.getCaminho()) {
+                texto.append(" -> ").append(aresta.getDestino().getRotulo());
+            }
+
+            texto.append("\nCusto total: ")
+                    .append(formatarPeso(resultado.getCustoTotal()))
+                    .append("\n\n");
+        } else {
+            texto.append("Não existe caminho de ").append(origem.getRotulo())
+                    .append(" até ").append(destino.getRotulo()).append(".\n\n");
+        }
+
+        texto.append("h(n) até ").append(destino.getRotulo()).append(" (Haversine, km):\n");
+
+        List<Vertice> vertices = grafo.getVertices();
+        vertices.sort((a, b) -> a.getRotulo().compareTo(b.getRotulo()));
+
+        for (Vertice vertice : vertices) {
+            texto.append(String.format("%s: %.1f%n",
+                    vertice.getRotulo(), resultado.getHeuristica().get(vertice)));
+        }
+
+        JOptionPane.showMessageDialog(this, texto.toString());
+    }
+
     public void executarRoy() {
 
         desativarModos();
@@ -158,7 +222,57 @@ public class MainCanvas extends JPanel {
 
     private void limparDestaque() {
         destacadas.clear();
+        coresVertices.clear();
         repaint();
+    }
+
+    public void executarDsatur() {
+
+        desativarModos();
+        limparDestaque();
+
+        Map<Vertice, Integer> cores;
+
+        try {
+            cores = new Dsatur().colorir(grafo);
+        } catch (IllegalArgumentException ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage());
+            return;
+        }
+
+        int quantidade = 0;
+
+        for (Map.Entry<Vertice, Integer> entrada : cores.entrySet()) {
+            coresVertices.put(entrada.getKey(), corDaPaleta(entrada.getValue()));
+            quantidade = Math.max(quantidade, entrada.getValue() + 1);
+        }
+
+        repaint();
+
+        StringBuilder texto = new StringBuilder("Número de cores: " + quantidade + "\n");
+
+        for (int cor = 0; cor < quantidade; cor++) {
+
+            texto.append("\nCor ").append(cor + 1).append(": ");
+
+            for (Vertice vertice : grafo.getVertices()) {
+                if (cores.get(vertice) == cor) {
+                    texto.append(vertice.getRotulo()).append(" ");
+                }
+            }
+        }
+
+        JOptionPane.showMessageDialog(this, texto.toString());
+    }
+
+    private Color corDaPaleta(int cor) {
+
+        if (cor < PALETA.length) {
+            return PALETA[cor];
+        }
+
+        // além da paleta: tons espaçados pelo ângulo áureo
+        return Color.getHSBColor((cor * 0.618f) % 1f, 0.7f, 0.9f);
     }
 
     private boolean estaDestacada(Aresta aresta) {
@@ -208,6 +322,9 @@ public class MainCanvas extends JPanel {
         modoRemoverVertice = false;
         modoRemoverAresta = false;
         origemAresta = null;
+        // qualquer nova ação volta ao desenho original
+        coresVertices.clear();
+        repaint();
     }
 
     private void tratarClique(MouseEvent e) {
@@ -252,11 +369,42 @@ public class MainCanvas extends JPanel {
             return;
         }
 
-        Vertice vertice = new Vertice(rotulo, x, y);
+        Double latitude = lerNumero("Latitude de " + rotulo + " (ex: -25,43):");
+
+        if (latitude == null) {
+            return;
+        }
+
+        Double longitude = lerNumero("Longitude de " + rotulo + " (ex: -49,27):");
+
+        if (longitude == null) {
+            return;
+        }
+
+        Vertice vertice = new Vertice(rotulo, x, y, latitude, longitude);
 
         grafo.adicionarVertice(vertice);
 
         repaint();
+    }
+
+    // Pede um número até ser válido; aceita vírgula ou ponto. Retorna null se cancelar.
+    private Double lerNumero(String mensagem) {
+
+        while (true) {
+
+            String entrada = JOptionPane.showInputDialog(this, mensagem);
+
+            if (entrada == null) {
+                return null;
+            }
+
+            try {
+                return Double.parseDouble(entrada.trim().replace(',', '.'));
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Número inválido: " + entrada);
+            }
+        }
     }
 
     private void selecionarAresta(int x, int y) {
@@ -477,7 +625,11 @@ public class MainCanvas extends JPanel {
             int x = vertice.getX();
             int y = vertice.getY();
 
+            g.setColor(coresVertices.getOrDefault(vertice, Color.BLACK));
             g.fillOval(x - 15, y - 15, 30, 30);
+
+            g.setColor(Color.BLACK);
+            g.drawOval(x - 15, y - 15, 30, 30);
 
             g.drawString(
                     vertice.getRotulo(),

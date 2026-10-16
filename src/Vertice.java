@@ -4,10 +4,15 @@ public class Vertice {
     private int x;
     private int y;
 
-    public Vertice(String rotulo, int x, int y) {
+    private final double latitude;
+    private final double longitude;
+
+    public Vertice(String rotulo, int x, int y, double latitude, double longitude) {
         this.rotulo = rotulo;
         this.x = x;
         this.y = y;
+        this.latitude = latitude;
+        this.longitude = longitude;
     }
 
     public String getRotulo() {
@@ -20,6 +25,14 @@ public class Vertice {
 
     public int getY() {
         return y;
+    }
+
+    public double getLatitude() {
+        return latitude;
+    }
+
+    public double getLongitude() {
+        return longitude;
     }
 
     public void setX(int x) {

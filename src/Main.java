@@ -53,12 +53,27 @@ public class Main {
         JMenuItem prim = new JMenuItem("Prim (AGM)");
         JMenuItem buscaProfundidade = new JMenuItem("Busca em profundidade guiada");
         JMenuItem roy = new JMenuItem("Roy (componentes)");
+        JMenuItem mapaParana = new JMenuItem("Carregar mapa do Paraná");
+        JMenuItem aEstrela = new JMenuItem("A* (caminho mínimo)");
+        JMenuItem dsatur = new JMenuItem("DSATUR (coloração)");
 
         novo.addActionListener(e -> {
 
             Grafo novoGrafo = criarGrafo();
 
             canvas.setGrafo(novoGrafo);
+        });
+
+        mapaParana.addActionListener(e -> {
+            canvas.setGrafo(MapaParana.criar());
+        });
+
+        aEstrela.addActionListener(e -> {
+            canvas.executarAEstrela();
+        });
+
+        dsatur.addActionListener(e -> {
+            canvas.executarDsatur();
         });
 
         adicionarVertice.addActionListener(e -> {
@@ -90,6 +105,7 @@ public class Main {
         });
 
         menuGrafo.add(novo);
+        menuGrafo.add(mapaParana);
         menuGrafo.addSeparator();
         menuGrafo.add(adicionarVertice);
         menuGrafo.add(adicionarAresta);
@@ -100,6 +116,8 @@ public class Main {
         menuAlgoritmos.add(prim);
         menuAlgoritmos.add(buscaProfundidade);
         menuAlgoritmos.add(roy);
+        menuAlgoritmos.add(aEstrela);
+        menuAlgoritmos.add(dsatur);
 
         menuBar.add(menuGrafo);
         menuBar.add(menuAlgoritmos);
